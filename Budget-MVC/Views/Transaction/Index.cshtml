@@ -1,0 +1,426 @@
+﻿@model Budget_MVC.Models.TransactionViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@using Microsoft.AspNetCore.Http
+@using X.PagedList.Mvc.Core
+@using X.PagedList
+
+@{
+    ViewData["Title"] = "Transaction Page";
+}
+<div class="text-center">
+    <h1 class="display-4">Transaction Page</h1>
+</div>
+
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createModal">
+    Create New Transaction
+</button>
+
+<!-- Search functionality-->
+<form asp-action="Index" method="get" class="form-inline mb-3 my-2 my-lg-0">
+    <div class="form-group mr-2 mb-2">
+        <input type="text" name="searchTerm" class="form-control" placeholder="Search Name..." value="@Context.Request.Query["searchTerm"]" />
+    </div>
+    <div class="form-group mr-2 mb-2">
+        <select name="filterParameters.Category" class="form-control">
+            <option value="">All Categories</option>
+            @foreach (var category in Model.Categories)
+            {
+                var selected = Context.Request.Query["filterParameters.Category"] == category.Name ? "selected" : null;
+                <option value="@category.Name" selected="@selected">@category.Name</option>
+            }
+
+        </select>
+    </div>
+    <div class="form-group mr-2">
+        <input type="date" name="filterParameters.Date" class="form-control" value="@Context.Request.Query["filterParameters.Date"]" />
+    </div>
+    <div class="form-group mr-2 mb-4">
+        <button type="submit" class="btn btn-primary mt-2">Filter</button>
+        <a asp-action="Index" class="btn btn-secondary ml-2 mt-2">Reset</a>
+    </div>
+    
+</form>
+
+
+
+
+<!-- Add New Transaction -->
+<div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="Create" id="createForm"
+            method="POST">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createModalLabel">New Transaction</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label asp-for="Transaction.Name" class="control-label"></label>
+                        <input asp-for="Transaction.Name" class="form-control" />
+                        <span asp-validation-for="Transaction.Name" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Transaction.Description" class="control-label"></label>
+                        <input asp-for="Transaction.Description" class="form-control" />
+                        <span asp-validation-for="Transaction.Description" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Transaction.Amount" class="control-label"></label>
+                        <input asp-for="Transaction.Amount" class="form-control" type="number" step="0.01" />
+                        <span asp-validation-for="Transaction.Amount" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Transaction.TransactionDate" class="control-label"></label>
+                        <input asp-for="Transaction.TransactionDate" class="form-control" type="date" />
+                        <span asp-validation-for="Transaction.TransactionDate" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Transaction.CategoryId" class="control-label"></label>
+                        <select asp-for="Transaction.CategoryId" class="form-control"
+                                asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+                            <option value="">Select Category</option>
+                        </select>
+
+                        <span asp-validation-for="Transaction.CategoryId" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnCancel" data-dismiss="modal">Close</button>
+                    <button id="btnCreateSave" type="button" class="btn btn-primary">Create Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Transaction -->
+<div class="modal fade" id="DeleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="deleteForm" method="POST">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Delete Category</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h5>Are you sure you want to delete this transaction record?</h5>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnCancel" data-dismiss="modal">Close</button>
+                    <button id="btnDelete" type="button" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Update Transaction -->
+<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="Edit" id="editForm" method="POST">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Edit Transaction</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="Transaction.Id" class="form-control updateId" id="Edit_Transaction_Id" />
+                    <div class="form-group">
+                        <label asp-for="Transaction.Name" class="control-label"></label>
+                        <input asp-for="Transaction.Name" class="form-control" id="Edit_Transaction_Name" />
+                        <span asp-validation-for="Transaction.Name" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Transaction.Description" class="control-label"></label>
+                        <input asp-for="Transaction.Description" class="form-control" id="Edit_Transaction_Description" />
+                        <span asp-validation-for="Transaction.Description" class="text-danger"></span>
+                    </div>
+                     <div class="form-group">
+                        <label asp-for="Transaction.Amount" class="control-label"></label>
+                        <input asp-for="Transaction.Amount" class="form-control" id="Edit_Transaction_Amount" />
+                        <span asp-validation-for="Transaction.Amount" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Transaction.TransactionDate" class="control-label"></label>
+                        <input asp-for="Transaction.TransactionDate" class="form-control" id="Edit_Transaction_TransactionDate" type="date" />
+                        <span asp-validation-for="Transaction.TransactionDate" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Transaction.CategoryId" class="control-label"></label>
+                        <select asp-for="Transaction.CategoryId" class="form-control" id="Edit_Transaction_CategoryId"
+                                asp-items="@(new SelectList(Model.Categories, "Id", "Name"))">
+                            <option value="">Select Category</option>
+                        </select>
+                        <span asp-validation-for="Transaction.CategoryId" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnCancel" data-dismiss="modal">Close</button>
+                    <button id="btnEditSave" type="button" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="transactionId" />
+<table class="table table-bordered">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Name</th>
+            <th scope="col">Description</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Category</th>
+            <th scope="col">Transaction Date</th>
+            <th scope="col">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var transaction in Model.Transactions)
+        {
+            <tr>
+                <th scope="row">@transaction.Id</th>
+                <td>@transaction.Name</td>
+                <td>@transaction.Description</td>
+                <td>@transaction.Amount</td>
+                <td>@transaction.Category?.Name</td>
+                <td>@transaction.TransactionDate.ToString("yyyy-MM-dd")</td>
+                <td>
+                    <a class="btn btn-primary" onclick="EditForm(@transaction.Id)">Edit</a> |
+                    <a class="btn btn-danger" onclick="Confirm(@transaction.Id)">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+@Html.PagedListPager(
+        (IPagedList)Model.Transactions,
+        page => Url.Action("Index", new
+        {
+            page,
+            searchTerm = Context.Request.Query["searchTerm"],
+            filterParameters_Category = Context.Request.Query["filterParameters.Category"],
+            filterParameters_Date = Context.Request.Query["filterParameters.Date"]
+        })
+    )
+
+
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        function getAntiForgeryToken(formSelector) {
+            return $(formSelector).find('input[name="__RequestVerificationToken"]').val();
+        }
+
+        $(document).ready(function () {
+            // Create
+            $("#btnCreateSave").click(function () {
+                var form = $("#createForm");
+                var formData = form.serialize();
+                $.ajax({
+                    url: "/Transaction/Create",
+                    type: "POST",
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken("#createForm")
+                    },
+                    success: function (response) {
+                            // Clear previous validation messages
+                            $("#createForm .text-danger").text("");
+                        if (response.success) {
+                            $("#createModal").modal("hide");
+
+                            setTimeout(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.message || 'Transaction created successfully!',
+                                    showConfirmButton: true
+                                }).then(() => {
+                                    window.location.href = "/Transaction/Index";
+                                });
+                            }, 500);
+                        }
+                        else {
+                            if (response.fieldErrors) {
+                                // Loop through ModelState errors
+                                for (var field in response.fieldErrors) {
+                                    var messages = response.fieldErrors[field];
+                                    // Find the span for this field and set the error text
+                                    var $span = $('[data-valmsg-for="' + field + '"]');
+                                    $span.text(messages.join(", "));
+                                }
+                            } else if (response.errors) {
+                                // fallback: show first error
+                                $('[data-valmsg-for]').first().text(response.errors[0]);
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.errors ? response.errors.join(", ") : 'Could not create transaction.'
+                            });
+                         }
+                    },
+                    error: function (xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: "Error creating transaction: " + error
+                        });
+                    }
+                });
+            });
+
+            // Edit
+            $("#btnEditSave").click(function () {
+                var form = $("#editForm");
+                var formData = form.serialize();
+                $.ajax({
+                    url: "/Transaction/Edit",
+                    type: "POST",
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken("#editForm")
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#EditModal").modal("hide");
+                            setTimeout(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.message || "Transaction updated successfully!",
+                                    showConfirmButton: true
+                                }).then(() => {
+                                    window.location.href = "/Transaction/Index";
+                                });
+                            }, 500);
+                        }
+                       else {
+                            if (response.fieldErrors) {
+                                // Loop through ModelState errors
+                                for (var field in response.fieldErrors) {
+                                    var messages = response.fieldErrors[field];
+                                    // Find the span for this field and set the error text
+                                    var $span = $('[data-valmsg-for="' + field + '"]');
+                                    $span.text(messages.join(", "));
+                                }
+                            } else if (response.errors) {
+                                // fallback: show first error
+                                $('[data-valmsg-for]').first().text(response.errors[0]);
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.errors ? response.errors.join(", ") : 'Could not update transaction.'
+                            });
+                         }
+                    },
+                    error: function (xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: "Error editing transaction: " + error
+                        });
+                    }
+                });
+            });
+
+            // Delete
+            $("#btnDelete").click(function () {
+                var id = $("#transactionId").val();
+                var token = getAntiForgeryToken("#deleteForm");
+                $.ajax({
+                    url: "/Transaction/Delete",
+                    type: "POST",
+                    data: { id: id, __RequestVerificationToken: token },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#DeleteModal").modal("hide");
+                            setTimeout(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.message || 'Transaction deleted successfully!',
+                                    showConfirmButton: true
+                                }).then(() => {
+                                    $("#transactionId").val(null);
+                                    window.location.href = "/Transaction/Index";
+                                });
+                            }, 500);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || "Could not delete transaction."
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Cancel buttons
+            $(".btnCancel").click(function () {
+                window.location.href = "/Transaction/Index";
+            });
+        });
+
+        // Show Delete Modal
+        function Confirm(id) {
+            $("#transactionId").val(id);
+            $("#DeleteModal").modal("show");
+        }
+
+        // Show Edit Modal and populate fields
+        function EditForm(id) {
+            $.ajax({
+                type: "GET",
+                url: "/Transaction/GetTransaction",
+                data: { id: id },
+                success: function (result) {
+                    if (result.success) {
+                        $("#EditModal").modal("show");
+                        $("#Edit_Transaction_Id").val(result.data.id);
+                        $("#Edit_Transaction_Name").val(result.data.name);
+                        $("#Edit_Transaction_Description").val(result.data.description);
+                        $("#Edit_Transaction_Amount").val(result.data.amount);
+                        $("#Edit_Transaction_CategoryId").val(result.data.categoryId);
+                        if (result.data.transactionDate) {
+                            // Convert to yyyy-MM-dd
+                            var date = new Date(result.data.transactionDate);
+                            var yyyy = date.getFullYear();
+                            var mm = String(date.getMonth() + 1).padStart(2, '0');
+                            var dd = String(date.getDate()).padStart(2, '0');
+                            var formatted = yyyy + '-' + mm + '-' + dd;
+                            $("#Edit_Transaction_TransactionDate").val(formatted);
+                        }
+
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message
+                        });
+                    }
+                }
+            });
+        }
+    </script>
+}

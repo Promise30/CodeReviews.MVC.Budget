@@ -1,0 +1,299 @@
+﻿@model Budget_MVC.Models.CategoryViewModel
+
+@{
+    ViewData["Title"] = "Category Page";
+}
+<div class="text-center">
+    <h1 class="display-4">Category Page</h1>
+</div>
+
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createModal">
+    Create New Category
+</button>
+
+<!-- Add New Category -->
+<div class="modal fade" id="createModal" tabindex="-1" role="dialog" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="Create" id="createForm" method="POST">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createModalLabel">Add New Category</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label asp-for="Category.Name" class="control-label"></label>
+                        <input asp-for="Category.Name" class="form-control" />
+                        <span asp-validation-for="Category.Name" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Category.Description" class="control-label"></label>
+                        <input asp-for="Category.Description" class="form-control" />
+                        <span asp-validation-for="Category.Description" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnCancel" data-dismiss="modal">Close</button>
+                    <button id="btnCreateSave" type="button" class="btn btn-primary">Create Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Category -->
+<div class="modal fade" id="DeleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="deleteForm" method="POST">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Delete Category</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h5>Are you sure you want to delete this category?</h5>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnCancel" data-dismiss="modal">Close</button>
+                    <button id="btnDelete" type="button" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Update Category -->
+<div class="modal fade" id="EditModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="Edit" id="editForm" method="POST">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Edit Category</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="Category.Id" class="form-control updateId" id="Edit_Category_Id" />
+                    <div class="form-group">
+                        <label asp-for="Category.Name" class="control-label"></label>
+                        <input asp-for="Category.Name" class="form-control" id="Edit_Category_Name" />
+                        <span asp-validation-for="Category.Name" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="Category.Description" class="control-label"></label>
+                        <input asp-for="Category.Description" class="form-control" id="Edit_Category_Description" />
+                        <span asp-validation-for="Category.Description" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnCancel" data-dismiss="modal">Close</button>
+                    <button id="btnEditSave" type="button" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="categoryId" />
+<table class="table table-bordered">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Name</th>
+            <th scope="col">Description</th>
+            <th scope="col">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var category in Model.Categories)
+        {
+            <tr>
+                <th scope="row">@category.Id</th>
+                <td>@category.Name</td>
+                <td>@category.Description</td>
+                <td>
+                    <a class="btn btn-primary" onclick="EditForm(@category.Id)">Edit</a> |
+                    <a class="btn btn-danger" onclick="Confirm(@category.Id)">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        // Helper to get anti-forgery token
+        function getAntiForgeryToken(formSelector) {
+            return $(formSelector).find('input[name="__RequestVerificationToken"]').val();
+        }
+
+        $(document).ready(function () {
+            // Create
+            $("#btnCreateSave").click(function () {
+                var form = $("#createForm");
+                var formData = form.serialize();
+                $.ajax({
+                    url: "/Category/Create",
+                    type: "POST",
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken("#createForm")
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#createModal").modal("hide");
+                            setTimeout(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.message || 'Category created successfully!',
+                                    timer: 1200,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.href = "/Category/Index";
+                                });
+                            }, 500);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.errors ? response.errors.join(", ") : "Could not create category."
+                            });
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: "Error creating category: " + error
+                        });
+                    }
+                });
+            });
+
+            // Edit
+            $("#btnEditSave").click(function () {
+                var form = $("#editForm");
+                var formData = form.serialize();
+                $.ajax({
+                    url: "/Category/Edit",
+                    type: "POST",
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken("#editForm")
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#EditModal").modal("hide");
+                            setTimeout(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.message || 'Category updated successfully!',
+                                    timer: 1200,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.href = "/Category/Index";
+                                });
+                            }, 500);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.errors ? response.errors.join(", ") : "Could not update category."
+                            });
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: "Error updating category: " + error
+                        });
+                    }
+                });
+            });
+
+            // Delete
+            $("#btnDelete").click(function () {
+                var id = $("#categoryId").val();
+                var token = getAntiForgeryToken("#deleteForm");
+                $.ajax({
+                    url: "/Category/Delete",
+                    type: "POST",
+                    data: { id: id, __RequestVerificationToken: token },
+                    success: function (response) {
+                        if (response.success) {
+                            $("#DeleteModal").modal("hide");
+                            setTimeout(function () {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success',
+                                    text: response.message || 'Category deleted successfully!',
+                                    timer: 1200,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    $("#categoryId").val(null);
+                                    window.location.href = "/Category/Index";
+                                });
+                            }, 500);
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: response.message || "Could not delete category."
+                            });
+                        }
+                    }
+                });
+            });
+
+            // Cancel buttons
+            $(".btnCancel").click(function () {
+                window.location.href = "/Category/Index";
+            });
+        });
+
+        // Show Delete Modal
+        function Confirm(id) {
+            $("#categoryId").val(id);
+            $("#DeleteModal").modal("show");
+        }
+
+        // Show Edit Modal and populate fields
+        function EditForm(id) {
+            $.ajax({
+                type: "GET",
+                url: "/Category/GetCategory",
+                data: { id: id },
+                success: function (result) {
+                    if (result.success) {
+                        $("#EditModal").modal("show");
+                        $("#Edit_Category_Id").val(result.data.id);
+                        $("#Edit_Category_Name").val(result.data.name);
+                        $("#Edit_Category_Description").val(result.data.description);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: result.message
+                        });
+                    }
+                }
+            });
+        }
+    </script>
+}
