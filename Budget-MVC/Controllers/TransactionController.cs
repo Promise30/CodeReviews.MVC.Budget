@@ -22,33 +22,52 @@ namespace Budget_MVC.Controllers
         {
             int pageNumber = page ?? 1;
             int pageSize = 5;
-            var query = _context.Transactions.Include(x=> x.Category).AsQueryable();
+            var query = _context.Transactions.Include(x => x.Category).AsQueryable();
             var categories = _context.Categories.ToList();
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                query = query.Where(t => EF.Functions.Like(t.Name , $"%{searchTerm}%"));
+                query = query.Where(t => EF.Functions.Like(t.Name, $"%{searchTerm}%"));
             }
+
+            // Filtering
             if (filterParameters != null)
             {
+                // Category filter
                 if (!string.IsNullOrEmpty(filterParameters.Category))
                 {
                     query = query.Where(t => t.Category != null && t.Category.Name.Equals(filterParameters.Category));
                 }
-                if (filterParameters.Date.HasValue)
+
+                // Date range validation
+                if (filterParameters.StartDate.HasValue && filterParameters.EndDate.HasValue)
                 {
-                    query = query.Where(t => t.TransactionDate.Date == filterParameters.Date.Value.Date);
+                    if (filterParameters.StartDate > filterParameters.EndDate)
+                    {
+                        ModelState.AddModelError("", "Start date cannot be after end date.");
+                    }
+                }
+
+                // Start date filter
+                if (filterParameters.StartDate.HasValue)
+                {
+                    query = query.Where(t => t.TransactionDate >= filterParameters.StartDate.Value);
+                }
+                // End date filter
+                if (filterParameters.EndDate.HasValue)
+                {
+                    query = query.Where(t => t.TransactionDate <= filterParameters.EndDate.Value);
                 }
             }
 
             // Pagination logic
-            var paginatedTransaction = query.OrderByDescending(x=> x.TransactionDate).ToPagedList(pageNumber, pageSize);
+            var paginatedTransaction = query.OrderByDescending(x => x.TransactionDate).ToPagedList(pageNumber, pageSize);
 
             TransactionViewModel vm = new TransactionViewModel
             {
                 Transactions = paginatedTransaction,
                 Categories = categories,
-                Transaction = new Transaction() 
+                Transaction = new Transaction()
             };
             return View(vm);
         }
