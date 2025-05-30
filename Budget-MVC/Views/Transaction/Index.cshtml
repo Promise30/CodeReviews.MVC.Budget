@@ -17,7 +17,7 @@
 </button>
 
 <!-- Search functionality-->
-<form asp-action="Index" method="get" class="form-inline mb-3 my-2 my-lg-0">
+<form id="filterForm" asp-action="Index" method="get" class="form-inline mb-3 my-2 my-lg-0">
     <div class="form-group mr-2 mb-2">
         <input type="text" name="searchTerm" class="form-control" placeholder="Search Name..." value="@Context.Request.Query["searchTerm"]" />
     </div>
@@ -33,7 +33,12 @@
         </select>
     </div>
     <div class="form-group mr-2">
-        <input type="date" name="filterParameters.Date" class="form-control" value="@Context.Request.Query["filterParameters.Date"]" />
+        <label for="startDate">Start Date</label>
+        <input type="date" id="startDate" name="filterParameters.StartDate" class="form-control" value="@Context.Request.Query["filterParameters.StartDate"]" />
+    </div>
+    <div class="form-group mr-2">
+        <label for="endDate">End Date</label>
+        <input type="date" id="endDate" name="filterParameters.EndDate" class="form-control" value="@Context.Request.Query["filterParameters.EndDate"]"  />
     </div>
     <div class="form-group mr-2 mb-4">
         <button type="submit" class="btn btn-primary mt-2">Filter</button>
@@ -213,7 +218,8 @@
             page,
             searchTerm = Context.Request.Query["searchTerm"],
             filterParameters_Category = Context.Request.Query["filterParameters.Category"],
-            filterParameters_Date = Context.Request.Query["filterParameters.Date"]
+            filterParameters_StartDate = Context.Request.Query["filterParameters.StartDate"],
+            filterParameters_EndDate = Context.Request.Query["filterParameters.EndDate"]
         })
     )
 
@@ -422,5 +428,21 @@
                 }
             });
         }
+
+        $(document).ready(function () {
+            $("#filterForm").submit(function (e) {
+                var start = $("input[name='filterParameters.StartDate']").val();
+                var end = $("input[name='filterParameters.EndDate']").val();
+                if (start && end && start > end) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Date Range',
+                        text: 'Start date cannot be after end date.'
+                    });
+                }
+            });
+        });
+
     </script>
 }

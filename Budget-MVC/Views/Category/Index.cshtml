@@ -170,7 +170,7 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: response.errors ? response.errors.join(", ") : "Could not create category."
+                                text: response.message || "Could not create category."
                             });
                         }
                     },
@@ -213,7 +213,7 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: response.errors ? response.errors.join(", ") : "Could not update category."
+                                text: response.message || "Could not update category."
                             });
                         }
                     },
